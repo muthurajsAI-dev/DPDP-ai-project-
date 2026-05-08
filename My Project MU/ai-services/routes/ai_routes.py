@@ -1,3 +1,5 @@
+import os   
+from dotenv import load_dotenv
 from flask import Blueprint, request, jsonify
 from middleware.auth import token_required
 from google import genai 
@@ -6,7 +8,8 @@ ai_bp = Blueprint('ai', __name__)
 
 # --- LATEST AI INITIALIZATION ---
 # Replace with your actual key starting with AIzaSy...
-client = genai.Client(api_key="AIzaSyAyrz5iUPjcrjsqNVdcth-JCh6e9xvjKds")
+load_dotenv()
+client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
 @ai_bp.route('/chat', methods=['POST'])
 @token_required
