@@ -1,41 +1,32 @@
-import sys
-import os
-from flask import Flask, request, jsonify
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
-
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from services.sanitizer import sanitize_input
+import jwt
+from flask import Flask, render_template, request, jsonify
+from datetime import datetime, timedelta, timezone
+from routes.ai_routes import ai_bp
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'Muthuraj_DPDP_AI_Project_Secure_2026_Key_Long'
 
-# Initialize the rate limiter (AI Developer 3 Task)
-limiter = Limiter(
-    get_remote_address,
-    app=app,
-    default_limits=["30 per minute"],
-    storage_uri="memory://",
-)
+# This makes the AI route accessible at /ai/chat
+app.register_blueprint(ai_bp, url_prefix='/ai')
 
-@app.route('/describe', methods=['POST'])
-@limiter.limit("10 per minute")  # Extra security for the AI route
-def describe():
-    data = request.json
-    user_text = data.get("text", "")
+@app.route('/')
+def index():
+    return render_template('index.html')
 
-    cleaned_text, is_safe = sanitize_input(user_text)
+@app.route('/profile')
+def profile():
+    return render_template('profile.html')
 
-    if not is_safe:
-        return jsonify({
-            "status": "error",
-            "message": "Unsafe input detected!"
-        }), 400
-
-    return jsonify({
-        "status": "success",
-        "cleaned_text": cleaned_text,
-        "message": "Input is safe and sanitized"
-    })
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    if data.get('username') == 'admin' and data.get('password') == 'password123':
+        token = jwt.encode({
+            'user': 'admin',
+            'exp': datetime.now(timezone.utc) + timedelta(hours=24)
+        }, app.config['SECRET_KEY'], algorithm='HS256')
+        return jsonify({"status": "success", "access_token": token})
+    return jsonify({"status": "error", "message": "Invalid credentials"}), 401
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(debug=True)
